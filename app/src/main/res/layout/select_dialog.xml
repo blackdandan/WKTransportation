@@ -9,10 +9,11 @@
         android:layout_height="wrap_content">
         <EditText
             android:id="@+id/edit_keyword"
-            android:layout_weight="5"
+            android:layout_weight="4"
             android:layout_width="0dp"
             android:layout_height="wrap_content" />
         <Button
+            android:text="搜索"
             android:id="@+id/btn_query"
             android:layout_weight="1"
             android:layout_width="0dp"

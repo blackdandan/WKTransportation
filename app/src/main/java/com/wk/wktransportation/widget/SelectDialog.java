@@ -2,6 +2,7 @@ package com.wk.wktransportation.widget;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.NonNull;
@@ -39,10 +40,15 @@ public class SelectDialog extends Dialog{
     private ListView resultListView;
     private EditText keywordEditText;
     private List<String> queryResultList;
+    private Button clickedView;
     private AdapterView.OnItemClickListener onListItemClickListener;
     public SelectDialog(@NonNull Context context) {
         super(context);
         init(context);
+    }
+
+    public void setClickedView(Button clickedView) {
+        this.clickedView = clickedView;
     }
 
     public SelectDialog(@NonNull Context context, int themeResId) {
@@ -63,36 +69,26 @@ public class SelectDialog extends Dialog{
         queryBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ThreadTool.SINGLE_SERVICE.submit(new Runnable() {
+                new AsyncTask<Void, Void, List<String>>() {
                     @Override
-                    public void run() {
-                        Log.d(TAG, "do==== SelectDialog run:1");
-                        queryResultList.clear();
-                        List<String > queryResult = new ArrayList<>();
-                        if (onQueryBtnClickListener!=null){
-                            queryResult = onQueryBtnClickListener.onQuery(keywordEditText.getText().toString());
-                        }
+                    protected List<String> doInBackground(Void... voids) {
+                        List<String > queryResult = onQueryBtnClickListener.onQuery(clickedView,keywordEditText.getText().toString());
                         queryResultList = queryResult;
-                        final List<String> finalQueryResult = queryResult;
-                        Handler handler = new Handler(Looper.getMainLooper());
-                        handler.post(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.d(TAG, "do==== SelectDialog run:2");
-                                ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(context,
-                                        android.R.layout.simple_list_item_1,
-                                        (String[]) finalQueryResult.toArray());
-                                resultListView.setAdapter(arrayAdapter);
-                            }
-                        });
-//                        ThreadPool.MAIN_WORKER.schedule(new Runnable() {
-//                            @Override
-//                            public void run() {
-//
-//                            }
-//                        });
+                        return queryResult;
                     }
-                });
+
+                    @Override
+                    protected void onPostExecute(List<String> strings) {
+                        super.onPostExecute(strings);
+                        Log.d(TAG, "do==== SelectDialog run:2");
+                        String[] result = new String[strings.size()];
+                        strings.toArray(result);
+                        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(context,
+                                android.R.layout.simple_list_item_1,
+                                 result);
+                        resultListView.setAdapter(arrayAdapter);
+                    }
+                }.execute();
             }
         });
         resultListView = view.findViewById(R.id.list_query);
@@ -102,7 +98,7 @@ public class SelectDialog extends Dialog{
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 if (queryResultList!=null){
-                    onQueryBtnClickListener.onItemClick(queryResultList.get(position));
+                    onQueryBtnClickListener.onItemClick(clickedView,queryResultList.get(position));
                 }else {
                     Log.e(TAG, "do====SelectDialog.onItemClick.:  ");
                 }
@@ -114,7 +110,7 @@ public class SelectDialog extends Dialog{
         this.onQueryBtnClickListener = listener;
     }
     public interface SelectDialogListener {
-        List<String> onQuery(String keyword);
-        void onItemClick(String item);
+        List<String> onQuery(Button view,String keyword);
+        void onItemClick(Button button,String item);
     }
 }

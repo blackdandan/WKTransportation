@@ -1,20 +1,31 @@
 package com.wk.wktransportation.ui.selectpage;
 
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.bigkoo.pickerview.TimePickerView;
 import com.wk.wktransportation.R;
+import com.wk.wktransportation.entity.CarInfo;
+import com.wk.wktransportation.entity.Customer;
+import com.wk.wktransportation.entity.Tempertumer;
+import com.wk.wktransportation.net.RestfulClient;
 import com.wk.wktransportation.rxbus.Event;
 import com.wk.wktransportation.ui.BaseActivity;
+import com.wk.wktransportation.util.ThreadPool;
+import com.wk.wktransportation.util.ThreadTool;
 import com.wk.wktransportation.widget.SelectDialog;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -50,15 +61,14 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
      * 客户选择器
      */
     private View mCustomerSelectView;
+    private Button queryBtn;
     private TextView mTxvCar;
     private TextView mTxvStartTime;
     private TextView mTxvEndTime;
     private TextView mTxvCustomer;
     private Button mCarSelectBtn;
     private Button mStartDateSelectBtn;
-    private Button mStartTimeSelectBtn;
     private Button mEndDateSelectBtn;
-    private Button mEndTimeSelectBtn;
     private Button mCustomerSelectBtn;
 
     private SelectDialog mSelectDialog;
@@ -66,9 +76,55 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
     private View.OnClickListener onCarSelectListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            mSelectDialog.show();
+           showDialog(v,"搜索车牌号");
         }
     };
+    private View.OnClickListener onStartDataClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            showTimePicker(v);
+        }
+    };
+
+    private View.OnClickListener onEndDateClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            showTimePicker(v);
+        }
+    };
+
+    private View.OnClickListener onSelectCustomerClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            showDialog(v,"搜索客户名称");
+        }
+    };
+    private View.OnClickListener onQueryBtnClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            final String carNumber = mCarSelectBtn.getText().toString();
+            final String startTime = mStartDateSelectBtn.getText().toString();
+            final String endTime = mEndDateSelectBtn.getText().toString();
+            new AsyncTask<Void, Void, List<Tempertumer>>() {
+                @Override
+                protected List<Tempertumer> doInBackground(Void... voids) {
+                    List<Tempertumer> list = RestfulClient.getInstance().selectTempertumer(endTime,startTime,carNumber);
+                    return list;
+                }
+
+                @Override
+                protected void onPostExecute(List<Tempertumer> tempertumers) {
+                    super.onPostExecute(tempertumers);
+                    Intent intent = new Intent();
+                }
+            }.execute();
+        }
+    };
+    private void showDialog(View view,String string){
+        mSelectDialog.setClickedView((Button) view);
+        mSelectDialog.show();
+        mSelectDialog.setTitle(string);
+    }
     @Override
     public void onNotification(Event event) {
 
@@ -85,13 +141,17 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
 
     private void initListener() {
         mCarSelectBtn.setOnClickListener(onCarSelectListener);
+        mStartDateSelectBtn.setOnClickListener(onStartDataClickListener);
+        mEndDateSelectBtn.setOnClickListener(onEndDateClickListener);
+        mCustomerSelectBtn.setOnClickListener(onSelectCustomerClickListener);
+        queryBtn.setOnClickListener(onQueryBtnClickListener);
     }
 
     private void initView() {
         ViewGroup rootView = findViewById(R.id.select_root_view);
         mCarSelectView = LayoutInflater.from(this).inflate(R.layout.one_btn_select_view,null);
-        mStartTimeSelectView = LayoutInflater.from(this).inflate(R.layout.tow_btn_select_view,null);
-        mEndTimeSelectView = LayoutInflater.from(this).inflate(R.layout.tow_btn_select_view,null);
+        mStartTimeSelectView = LayoutInflater.from(this).inflate(R.layout.one_btn_select_view,null);
+        mEndTimeSelectView = LayoutInflater.from(this).inflate(R.layout.one_btn_select_view,null);
         mCustomerSelectView = LayoutInflater.from(this).inflate(R.layout.one_btn_select_view,null);
         rootView.addView(mCarSelectView);
         rootView.addView(mStartTimeSelectView);
@@ -109,16 +169,13 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
 
         mCarSelectBtn = mCarSelectView.findViewById(R.id.btn_select);
 
-        mStartDateSelectBtn = mStartTimeSelectView.findViewById(R.id.btn_select_one);
+        mStartDateSelectBtn = mStartTimeSelectView.findViewById(R.id.btn_select);
         mStartDateSelectBtn.setText("开始日期");
-        mStartTimeSelectBtn = mStartTimeSelectView.findViewById(R.id.btn_select_two);
-        mStartTimeSelectBtn.setText("开始时间");
-        mEndDateSelectBtn = mEndTimeSelectView.findViewById(R.id.btn_select_one);
+        mEndDateSelectBtn = mEndTimeSelectView.findViewById(R.id.btn_select);
         mEndDateSelectBtn.setText("结束日期");
-        mEndTimeSelectBtn = mEndTimeSelectView.findViewById(R.id.btn_select_two);
-        mEndTimeSelectBtn.setText("结束时间");
         mCustomerSelectBtn = mCustomerSelectView.findViewById(R.id.btn_select);
         mCustomerSelectBtn.setText("客户名称");
+        queryBtn = findViewById(R.id.btn_start_query);
         mSelectDialog = new SelectDialog(this);
         mSelectDialog.setOnQueryBtnClickListener(this);
     }
@@ -137,19 +194,53 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
             mCarSelectBtn.setText("请选择冷藏箱");
         }
     }
-
-    @Override
-    public List<String> onQuery(String keyword) {
-        List<String > strings = new ArrayList<>();
-        strings.add("1");
-        strings.add("2");
-        strings.add("3");
-        strings.add("4");
-        return strings;
+    private void showTimePicker(final View button){
+        TimePickerView pickerView = new TimePickerView.Builder(this, new TimePickerView.OnTimeSelectListener() {
+            @Override
+            public void onTimeSelect(Date date, View v) {
+                ((Button)button).setText(getTime(date));
+            }
+        }).build();
+        pickerView.setDate(Calendar.getInstance());
+        pickerView.show();
+    }
+    /**
+     * @describe 时间显示样式
+     * @params Date
+     * @return 时间
+     **/
+    private String getTime(Date date) {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//时间显示样式，可选
+        return format.format(date);
     }
 
     @Override
-    public void onItemClick(String item) {
-        Log.d(TAG, "do==== SelectActivity onItemClick:"+item);
+    public List<String> onQuery(Button view,String keyword) {
+        if (view.getText().equals("请选择车牌号码")){
+            List<CarInfo> carInfos = RestfulClient.getInstance().getCarInfo(keyword);
+            List<String> carNames = new ArrayList<>();
+            for (CarInfo carInfo:carInfos){
+                carNames.add(carInfo.getCarnumber());
+            }
+            return carNames;
+        }
+
+        if (view.getText().equals("客户名称")){
+            List<Customer> customers = RestfulClient.getInstance().getCustomer(keyword);
+            List<String> customerNames = new ArrayList<>();
+            for (Customer customer:customers){
+                customerNames.add(customer.getHospitalname());
+            }
+            return customerNames;
+        }
+
+
+        return null;
+    }
+
+    @Override
+    public void onItemClick(Button button,String item) {
+        button.setText(item);
+        mSelectDialog.dismiss();
     }
 }
