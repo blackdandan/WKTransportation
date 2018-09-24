@@ -105,6 +105,22 @@ public class Tempertumer implements Serializable{
      * @mbg.generated
      */
     public String getTempertumer() {
+        if (tempertumer!=null){
+            if (tempertumer.length()>3){
+                tempertumer = tempertumer.substring(0,4);
+            }
+            if (tempertumer.length() == 1){
+                tempertumer = tempertumer+".00";
+            }
+            if (tempertumer.length() == 2){
+                tempertumer = tempertumer+"00";
+            }
+            if (tempertumer.length() == 3){
+                tempertumer = tempertumer+"0";
+            }
+        }
+
+
         return tempertumer;
     }
 

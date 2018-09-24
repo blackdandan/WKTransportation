@@ -3,12 +3,16 @@ package com.wk.wktransportation.ui.splash;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.view.Window;
 
 import com.wk.wktransportation.App;
+import com.wk.wktransportation.R;
 import com.wk.wktransportation.gprinter.GprinterHelper;
 import com.wk.wktransportation.rxbus.Event;
 import com.wk.wktransportation.ui.BaseActivity;
 import com.wk.wktransportation.ui.home.MainActivity;
+import com.wk.wktransportation.ui.selectpage.SelectActivity;
+import com.wk.wktransportation.ui.selecttypepage.SelectTypePage;
 import com.wk.wktransportation.util.ThreadTool;
 
 import java.util.concurrent.TimeUnit;
@@ -33,8 +37,9 @@ public class SplashActivity extends BaseActivity{
         @Override
         public void run() {
             if (isStop)return;
-            Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+            Intent intent = new Intent(SplashActivity.this, SelectTypePage.class);
             startActivity(intent);
+            finish();
         }
     };
     /**
@@ -42,7 +47,9 @@ public class SplashActivity extends BaseActivity{
      */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_splash);
         ThreadTool.SCHEDULED_SERVICE.schedule(startMainActivity,3, TimeUnit.SECONDS);
     }
 

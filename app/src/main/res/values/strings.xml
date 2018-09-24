@@ -71,7 +71,7 @@
     <string name="str_state">状态：</string>
     <string name="str_interface_undefine">接口：未设定</string>
     <string name="str_select_printer_id">选中id为{0}的打印机</string>
-    <string name ="bluetooth_is_not_enabled">蓝牙没有开启</string>
+    <string name="bluetooth_is_not_enabled">蓝牙没有开启</string>
     <string-array name="str_interf_type">
         <item>蓝牙</item>
         <item>网口</item>

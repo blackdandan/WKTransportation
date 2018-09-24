@@ -1,9 +1,10 @@
 package com.wk.wktransportation.ui.selectpage;
 
+
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,14 +13,15 @@ import android.widget.TextView;
 
 import com.bigkoo.pickerview.TimePickerView;
 import com.wk.wktransportation.R;
+import com.wk.wktransportation.database.CarHandler;
+import com.wk.wktransportation.database.DataBaseHelper;
 import com.wk.wktransportation.entity.CarInfo;
 import com.wk.wktransportation.entity.Customer;
-import com.wk.wktransportation.entity.Tempertumer;
+import com.wk.wktransportation.entity.TempBox;
 import com.wk.wktransportation.net.RestfulClient;
 import com.wk.wktransportation.rxbus.Event;
 import com.wk.wktransportation.ui.BaseActivity;
-import com.wk.wktransportation.util.ThreadPool;
-import com.wk.wktransportation.util.ThreadTool;
+import com.wk.wktransportation.ui.temperature.TemperatureActivity;
 import com.wk.wktransportation.widget.SelectDialog;
 
 import java.text.SimpleDateFormat;
@@ -45,6 +47,7 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
     private static final int INCUBATOR_TYPE_FREEZE_BOX = 2;
 
     public static final String INCUBATOR_TYPE = "incubator_type";
+    private int incubatorType = 0;
     /**
      * 选择车
      */
@@ -105,19 +108,20 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
             final String carNumber = mCarSelectBtn.getText().toString();
             final String startTime = mStartDateSelectBtn.getText().toString();
             final String endTime = mEndDateSelectBtn.getText().toString();
-            new AsyncTask<Void, Void, List<Tempertumer>>() {
-                @Override
-                protected List<Tempertumer> doInBackground(Void... voids) {
-                    List<Tempertumer> list = RestfulClient.getInstance().selectTempertumer(endTime,startTime,carNumber);
-                    return list;
-                }
-
-                @Override
-                protected void onPostExecute(List<Tempertumer> tempertumers) {
-                    super.onPostExecute(tempertumers);
-                    Intent intent = new Intent();
-                }
-            }.execute();
+            String customer = mCustomerSelectBtn.getText().toString();
+            Intent intent = new Intent(SelectActivity.this, TemperatureActivity.class);
+            int type = TemperatureActivity.TYPE_INCUBATOR;
+            if (incubatorType == INCUBATOR_TYPE_CAR){
+                type = TemperatureActivity.TYPE_CAR;
+            }else {
+                type = TemperatureActivity.TYPE_INCUBATOR;
+            }
+            intent.putExtra(TemperatureActivity.TYPE,type);
+            intent.putExtra(TemperatureActivity.CUSTOMER,customer);
+            intent.putExtra(TemperatureActivity.START_TIME,startTime);
+            intent.putExtra(TemperatureActivity.END_TIME,endTime);
+            intent.putExtra(TemperatureActivity.NUMBER,carNumber);
+            startActivity(intent);
         }
     };
     private void showDialog(View view,String string){
@@ -180,18 +184,20 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
         mSelectDialog.setOnQueryBtnClickListener(this);
     }
     private void initIncubator(){
-        int type = getIntent().getIntExtra(INCUBATOR_TYPE,INCUBATOR_TYPE_CAR);
-        if (type == INCUBATOR_TYPE_CAR){
+        incubatorType = getIntent().getIntExtra(INCUBATOR_TYPE,INCUBATOR_TYPE_CAR);
+        Log.d(TAG, "do==== SelectActivity initIncubator:"+incubatorType);
+        if (incubatorType == INCUBATOR_TYPE_CAR){
             mTxvCar.setText("车牌号");
-            mCarSelectBtn.setText("请选择车牌号码");
+            mCarSelectBtn.setText("请选择车牌号");
         }
-        if (type == INCUBATOR_TYPE_BOX){
+        if (incubatorType == INCUBATOR_TYPE_BOX){
             mTxvCar.setText("保温箱号");
             mCarSelectBtn.setText("请选择保温箱");
         }
-        if (type == INCUBATOR_TYPE_FREEZE_BOX){
+        if (incubatorType == INCUBATOR_TYPE_FREEZE_BOX){
             mTxvCar.setText("冷藏箱号");
-            mCarSelectBtn.setText("请选择冷藏箱");
+            mCarSelectBtn.setText("000");
+            mCarSelectBtn.setEnabled(false);
         }
     }
     private void showTimePicker(final View button){
@@ -210,22 +216,31 @@ public class SelectActivity extends BaseActivity implements SelectDialog.SelectD
      * @return 时间
      **/
     private String getTime(Date date) {
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//时间显示样式，可选
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd H:mm:ss");//时间显示样式，可选
         return format.format(date);
     }
 
     @Override
     public List<String> onQuery(Button view,String keyword) {
-        if (view.getText().equals("请选择车牌号码")){
+        if (incubatorType == INCUBATOR_TYPE_CAR && view == mCarSelectBtn){
             List<CarInfo> carInfos = RestfulClient.getInstance().getCarInfo(keyword);
+            CarHandler.getInstance().insert(carInfos);
             List<String> carNames = new ArrayList<>();
             for (CarInfo carInfo:carInfos){
                 carNames.add(carInfo.getCarnumber());
             }
             return carNames;
         }
+        if (incubatorType == INCUBATOR_TYPE_BOX&& view == mCarSelectBtn){
+            List<TempBox> tempBoxes = RestfulClient.getInstance().getAllTempBox(keyword);
+            List<String> tempBoxNames = new ArrayList<>();
+            for (TempBox tempBox:tempBoxes){
+                tempBoxNames.add(tempBox.getTempbox());
+            }
+            return tempBoxNames;
 
-        if (view.getText().equals("客户名称")){
+        }
+        if (view == mCustomerSelectBtn){
             List<Customer> customers = RestfulClient.getInstance().getCustomer(keyword);
             List<String> customerNames = new ArrayList<>();
             for (Customer customer:customers){

@@ -4,14 +4,17 @@ import android.util.Log;
 
 import com.wk.wktransportation.entity.CarInfo;
 import com.wk.wktransportation.entity.Customer;
+import com.wk.wktransportation.entity.TempBox;
 import com.wk.wktransportation.entity.Tempertumer;
 import com.wk.wktransportation.entity.Worker;
 import com.wk.wktransportation.net.service.CarInfoService;
 import com.wk.wktransportation.net.service.CustomerService;
+import com.wk.wktransportation.net.service.TempBoxService;
 import com.wk.wktransportation.net.service.TempertumerService;
 import com.wk.wktransportation.net.service.WorkerService;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import retrofit2.Call;
@@ -83,6 +86,18 @@ public class RestfulClient {
         }
         return null;
     }
+
+    public List<TempBox> getAllTempBox(String number){
+        Call<List<TempBox>> call = retrofit.create(TempBoxService.class).getTempBox(number);
+        try {
+            Response<List<TempBox>> response = call.execute();
+            return response.body();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public List<String > getAllBoxType(){
         Call<List<String>> call = retrofit.create(TempertumerService.class).getAllBoxType();
         try {
@@ -101,6 +116,6 @@ public class RestfulClient {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        return new ArrayList<>();
     }
 }

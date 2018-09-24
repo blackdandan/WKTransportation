@@ -69,6 +69,10 @@ public class SelectDialog extends Dialog{
         queryBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(context,
+                        android.R.layout.simple_list_item_1,
+                        new ArrayList<String>());
+                resultListView.setAdapter(arrayAdapter);
                 new AsyncTask<Void, Void, List<String>>() {
                     @Override
                     protected List<String> doInBackground(Void... voids) {

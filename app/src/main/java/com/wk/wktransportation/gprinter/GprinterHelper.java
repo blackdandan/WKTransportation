@@ -10,9 +10,15 @@ import com.gprinter.command.EscCommand;
 import com.gprinter.command.LabelCommand;
 import com.wk.wktransportation.App;
 import com.wk.wktransportation.R;
+import com.wk.wktransportation.entity.Tempertumer;
+import com.wk.wktransportation.ui.selecttypepage.SelectTypePage;
+import com.wk.wktransportation.ui.temperature.TemperatureActivity;
 import com.wk.wktransportation.util.ThreadPool;
 import com.wk.wktransportation.util.Utils;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -27,7 +33,10 @@ import java.util.Vector;
 public class GprinterHelper {
     private static final String TAG = "GprinterHelper";
 
-    public static void print(final int id){
+    public static void print(final int id, final String startTime,
+                             final List<Tempertumer> tempertumers, final String customer,
+                             final int type, final String carnumber, final String number
+                            , final float maxValue, final float minValue){
         if (DeviceConnFactoryManager.getDeviceConnFactoryManagers()[id] == null ||
                 !DeviceConnFactoryManager.getDeviceConnFactoryManagers()[id].getConnState()) {
             Utils.toast(App.getApplication(),App.getApplication(). getString(R.string.str_cann_printer));
@@ -37,7 +46,7 @@ public class GprinterHelper {
             @Override
             public void run() {
                 if (DeviceConnFactoryManager.getDeviceConnFactoryManagers()[id].getCurrentPrinterCommand() == PrinterCommand.ESC) {
-                    sendReceiptWithResponse(id);
+                    sendReceiptWithResponse(id,startTime,tempertumers,customer,type,carnumber,number,maxValue,minValue);
                 } else {
 
                 }
@@ -48,85 +57,93 @@ public class GprinterHelper {
     /**
      * 发送数据
      */
-    private static void sendReceiptWithResponse(int id) {
+    private static void sendReceiptWithResponse(int id,String startTime,
+                                                final List<Tempertumer> tempertumers,
+                                                final String customer, final int type,
+                                                final String carnumber, final String number,float maxValue,float minValue) {
         EscCommand esc = new EscCommand();
         esc.addInitializePrinter();
         esc.addPrintAndFeedLines((byte) 3);
         // 设置打印居中
         esc.addSelectJustification(EscCommand.JUSTIFICATION.CENTER);
         // 设置为倍高倍宽
-        esc.addSelectPrintModes(EscCommand.FONT.FONTA, EscCommand.ENABLE.OFF, EscCommand.ENABLE.ON, EscCommand.ENABLE.ON, EscCommand.ENABLE.OFF);
+//        esc.addSelectPrintModes(EscCommand.FONT.FONTA, EscCommand.ENABLE.OFF, EscCommand.ENABLE.ON, EscCommand.ENABLE.ON, EscCommand.ENABLE.OFF);
         // 打印文字
-        esc.addText("Sample\n");
-        esc.addPrintAndLineFeed();
-
-        /* 打印文字 */
-        // 取消倍高倍宽
-        esc.addSelectPrintModes(EscCommand.FONT.FONTA, EscCommand.ENABLE.OFF, EscCommand.ENABLE.OFF, EscCommand.ENABLE.OFF, EscCommand.ENABLE.OFF);
+        esc.addText("太原维康鸿业科技有限公司\n");
         // 设置打印左对齐
         esc.addSelectJustification(EscCommand.JUSTIFICATION.LEFT);
-        // 打印文字
-        esc.addText("Print text\n");
-        // 打印文字
-        esc.addText("Welcome to use SMARNET printer!\n");
 
-        /* 打印繁体中文 需要打印机支持繁体字库 */
-        String message = "佳博智匯票據打印機\n";
-        esc.addText(message, "GB2312");
+        if (type == TemperatureActivity.TYPE_CAR){
+            esc.addText("运输方式:冷藏车\n");
+        }else {
+            esc.addText("运输方式:保温箱\n");
+        }
+
+        esc.addText("收货方:"+customer+"\n");
+        esc.addText("发货方:太原维康鸿业科技有限公司\n");
+        esc.addText("承运方:太原维康鸿业科技有限公司\n");
+        if (type == TemperatureActivity.TYPE_CAR){
+            esc.addText("车牌号:"+carnumber+"\n");
+        }
+        esc.addText("设备编号:"+number+"\n");
         esc.addPrintAndLineFeed();
+        esc.addText("--------------------------------\n");
+        if (type == TemperatureActivity.TYPE_CAR){
+            esc.addText("时间: 编号: 温度℃: 编号: 温度℃  \n");
+        }else {
+            esc.addText("时间:  温度℃:  时间:  温度℃\n");
+        }
+        esc.addText("--------------------------------\n");
+        esc.addText(startTime+"\n");
 
-        /* 绝对位置 具体详细信息请查看GP58编程手册 */
-        esc.addText("智汇");
-        esc.addSetHorAndVerMotionUnits((byte) 7, (byte) 0);
-        esc.addSetAbsolutePrintPosition((short) 6);
-        esc.addText("网络");
-        esc.addSetAbsolutePrintPosition((short) 10);
-        esc.addText("设备");
-        esc.addPrintAndLineFeed();
+        if (type == TemperatureActivity.TYPE_CAR){
+            List<Tempertumer> tempertumerList1 = tempertumers.subList(0,tempertumers.size()/2-1);
+            List<Tempertumer> tempertumerList2 = tempertumers.subList(tempertumers.size()/2,tempertumers.size()-1);
+            for (int i = 0;i<tempertumerList1.size();i++){
+                Tempertumer tempertumer1 = tempertumerList1.get(i);
+                String time = tempertumer1.getDatetime();
+                String num1 = tempertumer1.getIncubatornumber();
+                if (time!=null){
+                    esc.addText(time.substring(time.length()-8,time.length()-3));
+                    esc.addText("  "+num1.substring(num1.length()-2,num1.length())+":");
+                    esc.addText(" "+tempertumer1.getTempertumer()+"  ");
+                    Tempertumer tempertumer2 = tempertumerList2.get(i);
 
-        /* 打印图片 */
-        // 打印文字
-        esc.addText("Print bitmap!\n");
-        Bitmap b = BitmapFactory.decodeResource(App.getApplication().getResources(),
-                R.mipmap.gprinter);
-        // 打印图片
-        esc.addOriginRastBitImage(b, 384, 0);
+                    String num2 = tempertumer2.getIncubatornumber();
+                    esc.addText(time.substring(time.length()-8,time.length()-3));
+                    esc.addText("  "+num2.substring(num2.length()-2,num2.length())+":");
+                    esc.addText(" "+tempertumer2.getTempertumer());
+                    esc.addText("\n");
 
-        /* 打印一维条码 */
-        // 打印文字
-        esc.addText("Print code128\n");
-        esc.addSelectPrintingPositionForHRICharacters(EscCommand.HRI_POSITION.BELOW);
-        // 设置条码可识别字符位置在条码下方
-        // 设置条码高度为60点
-        esc.addSetBarcodeHeight((byte) 60);
-        // 设置条码单元宽度为1
-        esc.addSetBarcodeWidth((byte) 1);
-        // 打印Code128码
-        esc.addCODE128(esc.genCodeB("SMARNET"));
-        esc.addPrintAndLineFeed();
+                }
+            }
+        }else{
+            for (int i = 0; i< tempertumers.size();i++){
+                Tempertumer tempertumer = tempertumers.get(i);
+                String time = tempertumer.getDatetime();
+                if (time!=null){
+                    esc.addText(time.substring(time.length()-8,time.length()-3));
+                    esc.addText("  "+tempertumer.getTempertumer());
+                    if (i%2 == 0){
+                        esc.addText("\n");
+                    }
+                }
+            }
 
-        /*
-         * QRCode命令打印 此命令只在支持QRCode命令打印的机型才能使用。 在不支持二维码指令打印的机型上，则需要发送二维条码图片
-         */
-        // 打印文字
-        esc.addText("Print QRcode\n");
-        // 设置纠错等级
-        esc.addSelectErrorCorrectionLevelForQRCode((byte) 0x31);
-        // 设置qrcode模块大小
-        esc.addSelectSizeOfModuleForQRCode((byte) 3);
-        // 设置qrcode内容
-        esc.addStoreQRCodeData("www.smarnet.cc");
-        esc.addPrintQRCode();// 打印QRCode
-        esc.addPrintAndLineFeed();
-
-        // 设置打印左对齐
-        esc.addSelectJustification(EscCommand.JUSTIFICATION.CENTER);
-        //打印文字
-        esc.addText("Completed!\r\n");
-
-        // 开钱箱
-        esc.addGeneratePlus(LabelCommand.FOOT.F5, (byte) 255, (byte) 255);
-        esc.addPrintAndFeedLines((byte) 8);
+        }
+        esc.addText("最大温度值:"+maxValue+"\n");
+        esc.addText("最小温度值:"+minValue+"\n");
+        esc.addText("收货人:\n");
+        esc.addText("交货人:\n");
+        esc.addText("\n");
+        esc.addSelectJustification(EscCommand.JUSTIFICATION.RIGHT);
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-mm-dd hh:mm");
+        String now = simpleDateFormat.format(new Date());
+        esc.addText(now+"\n");
+        esc.addText("\n");
+        esc.addText("\n");
+        esc.addText("\n");
+        esc.addText("\n");
         // 加入查询打印机状态，打印完成后，此时会接收到GpCom.ACTION_DEVICE_STATUS广播
         esc.addQueryPrinterStatus();
         Vector<Byte> datas = esc.getCommand();

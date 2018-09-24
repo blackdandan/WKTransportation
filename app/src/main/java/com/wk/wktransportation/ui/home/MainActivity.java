@@ -71,7 +71,6 @@ public class MainActivity extends BaseActivity{
     }
 
     public void onPrintClick(View view) {
-        GprinterHelper.print(id);
     }
 
     public void onGetCarClick(View view) {
